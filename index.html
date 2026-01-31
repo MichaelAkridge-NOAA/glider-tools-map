@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SeaVision Analytics</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a2e;
+    }
+    .navbar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      padding: 12px 24px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 2000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .navbar h1 {
+      margin: 0;
+      font-size: 20px;
+      color: #fff;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .navbar h1 span {
+      color: #4fc3f7;
+      font-weight: 700;
+    }
+    .nav-links {
+      color: rgba(255,255,255,0.8);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100vh;
+      background: #1a1a2e;
+    }
+    .control-panel {
+      position: absolute;
+      top: 85px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.98);
+      padding: 18px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      z-index: 1000;
+      max-width: 320px;
+      max-height: calc(90vh - 95px);
+      overflow-y: auto;
+      transition: opacity 0.3s, transform 0.3s;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .control-panel.hidden {
+      display: none;
+    }
+    .control-panel h3 {
+      margin: 0 0 12px 0;
+      font-size: 17px;
+      color: #1e3c72;
+      font-weight: 600;
+      border-bottom: 2px solid #4fc3f7;
+      padding-bottom: 8px;
+    }
+    .control-section {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .control-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    .control-section label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      color: #666;
+      font-weight: 500;
+    }
+    .control-section input[type="text"],
+    .control-section input[type="number"],
+    .control-section select {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .control-section input[type="range"] {
+      width: 100%;
+    }
+    .slider-value {
+      display: inline-block;
+      margin-left: 10px;
+      font-weight: bold;
+      color: #1e3c72;
+    }
+    .button-group {
+      display: flex;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.3s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .btn:hover {
+      background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+      box-shadow: 0 4px 10px rgba(79, 195, 247, 0.3);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: #6c757d;
+    }
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    .btn-success {
+      background: #28a745;
+    }
+    .btn-success:hover {
+      background: #218838;
+    }
+    .info-box {
+      background: #f8f9fa;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
+    .info-box strong {
+      color: #333;
+    }
+    .status {
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.loading {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .toggle-panel {
+      position: absolute;
+      top: 72px;
+      right: 10px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      padding: 10px 16px;
+      border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 1001;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      transition: all 0.3s;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .toggle-panel:hover {
+      background: linear-gradient(135deg, #2a5298 0%, #4fc3f7 100%);
+      box-shadow: 0 5px 15px rgba(79, 195, 247, 0.4);
+      transform: translateY(-2px);
+    }
+    .coords-display {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(30, 60, 114, 0.95);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      z-index: 1000;
+      font-family: 'Courier New', monospace;
+      color: #4fc3f7;
+      font-weight: 600;
+      border: 1px solid rgba(79, 195, 247, 0.3);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .leaflet-top.leaflet-left {
+      top: 70px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <h1>🌊 Glider<span>Map</span>Tools</h1>
+    <div class="nav-links">
+      Satellite-Based Ocean Imagery Analysis
+    </div>
+  </nav>
+  
+  <div id="map"></div>
+  
+  <div class="toggle-panel" onclick="togglePanel()">☰ Controls</div>
+  
+  <div class="control-panel" id="controlPanel">
+    <h3>🗺️ Data Layers</h3>
+    
+    <div class="control-section">
+      <label>Select Dataset:</label>
+      <select id="rasterSelect" onchange="loadSelectedRaster()">
+        <!-- Options populated from CONFIG.datasets below -->
+      </select>
+      <div class="button-group">
+        <button class="btn btn-success" onclick="zoomToRaster()">Zoom to Fit</button>
+      </div>
+      
+      <div class="info-box" style="margin-top: 10px; font-size: 11px; line-height: 1.5;">
+        <strong>🔍 Available Layers:</strong><br>
+        • <strong>Pansharpened RGB:</strong> Highest resolution (0.5m) for visual search<br>
+        • <strong>4-Band Multispectral:</strong> Includes NIR for spectral analysis<br>
+        • <strong>Lossless RGB:</strong> Original MS resolution without compression artifacts
+      </div>
+    </div>
+    
+    <div class="control-section">
+      <label>Background Map:</label>
+      <select id="basemapSelect" onchange="changeBasemap()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+        <option value="none">No Basemap</option>
+        <option value="osm" selected>OpenStreetMap</option>
+        <option value="satellite">Satellite (Esri)</option>
+        <option value="terrain">Terrain (USGS)</option>
+        <option value="topo">Topographic (Esri)</option>
+        <option value="dark">Dark Theme</option>
+      </select>
+    </div>
+    
+    <div class="control-section">
+      <label>Opacity: <span class="slider-value" id="opacityValue">1.0</span></label>
+      <input type="range" id="opacitySlider" min="0" max="1" step="0.05" value="1.0" 
+             oninput="updateOpacity(this.value)" />
+    </div>
+    
+    <div class="control-section" id="colormapGroup" style="display: none;">
+      <label>DEM Colormap:</label>
+      <select id="colormapSelect" onchange="updateColormap()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+        <option value="viridis" selected>Viridis</option>
+        <option value="terrain">Terrain (Land)</option>
+        <option value="ocean">Ocean (Bathymetry)</option>
+        <option value="deep">Deep Ocean</option>
+        <option value="plasma">Plasma</option>
+        <option value="inferno">Inferno</option>
+        <option value="cividis">Cividis</option>
+        <option value="gray">Grayscale</option>
+        <option value="rainbow">Rainbow</option>
+        <option value="turbo">Turbo</option>
+      </select>
+      <p style="font-size: 11px; color: #999; margin: 5px 0 0 0;">💡 Ocean/Deep colormaps ideal for underwater terrain</p>
+      
+      <button onclick="updateColormap()" style="width: 100%; padding: 6px; margin-top: 10px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">Apply Colormap</button>
+    </div>
+    
+    <div id="rasterInfo" class="info-box" style="display:none;">
+      <strong>Info:</strong><br>
+      <span id="infoContent"></span>
+    </div>
+  </div>
+
+  <div class="coords-display" id="coordsDisplay">Lat: ---, Lon: ---</div>
+
+  <script>
+    // ============================================
+    // CONFIGURATION
+    // ============================================
+    const CONFIG = {
+      // TiTiler server URL
+      tileServerUrl: 'https://connect.fisheries.noaa.gov/cat-tiles',
+      
+      // GCS bucket path (NOAA NMFS PIFSC)
+      gcsBucket: 'nmfs_odp_pifsc',
+      gcsPath: 'PIFSC/SOD/dev_jct/cog_files',
+      
+      // COG datasets in GCS
+      datasets: [
+        {
+          name: 'Panchromatic (0.5m)',
+          filename: '01_panchromatic_cog.tif',
+          bounds: [-158.2408, 21.2873, -158.1119, 21.4371], // [west, south, east, north]
+          type: 'grayscale'
+        },
+        {
+          name: 'Lossless RGB (2m)',
+          filename: '02_multispectral_rgb_lossless_cog.tif',
+          bounds: [-158.2408, 21.2873, -158.1119, 21.4371],
+          type: 'rgb'
+        },
+        {
+          name: '4-Band Multispectral (2m)',
+          filename: '03_multispectral_4band_cog.tif',
+          bounds: [-158.2408, 21.2873, -158.1119, 21.4371],
+          type: 'multispectral'
+        }
+      ],
+      
+      // Default map settings
+      defaultCenter: [21.36, -158.18], // [lat, lon]
+      defaultZoom: 10,
+      maxZoom: 22
+    };
+    
+    // Build full GCS URL for dataset
+    function getGcsUrl(filename) {
+      return `gs://${CONFIG.gcsBucket}/${CONFIG.gcsPath}/${filename}`;
+    }
+    // ============================================
+    
+    // Basemap layers
+    var basemapLayers = {
+      'none': null,
+      'osm': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }),
+      'satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri, Maxar, Earthstar Geographics',
+        maxZoom: 19
+      }),
+      'terrain': L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'USGS The National Map',
+        maxZoom: 16
+      }),
+      'topo': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri, HERE, Garmin, Intermap',
+        maxZoom: 19
+      }),
+      'dark': L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors, © CARTO',
+        maxZoom: 19,
+        subdomains: 'abcd'
+      })
+    };
+    
+    // Initialize map
+    var map = L.map('map', {
+      center: CONFIG.defaultCenter,
+      zoom: CONFIG.defaultZoom,
+      zoomControl: true,
+      maxZoom: CONFIG.maxZoom
+    });
+    
+    // Add default basemap
+    var currentBasemap = basemapLayers.osm;
+    if (currentBasemap) {
+      currentBasemap.addTo(map);
+    }
+    
+    // Add scale control
+    L.control.scale({
+      imperial: true,
+      metric: true
+    }).addTo(map);
+    
+    // Layer variables
+    var rasterLayer = null;
+    var rasterBounds = null;
+    var currentDataset = null;
+    
+    // Update coordinates on mouse move
+    map.on('mousemove', function(e) {
+      var coords = e.latlng;
+      document.getElementById('coordsDisplay').innerHTML = 
+        'Lat: ' + coords.lat.toFixed(6) + ', Lon: ' + coords.lng.toFixed(6);
+    });
+    
+    // Populate dataset selector
+    function populateDatasetSelector() {
+      var select = document.getElementById('rasterSelect');
+      select.innerHTML = '';
+      
+      CONFIG.datasets.forEach(function(dataset, index) {
+        var option = document.createElement('option');
+        option.value = index;
+        option.textContent = dataset.name;
+        select.appendChild(option);
+      });
+    }
+    
+    // Load selected raster
+    function loadSelectedRaster() {
+      var select = document.getElementById('rasterSelect');
+      var index = parseInt(select.value);
+      var dataset = CONFIG.datasets[index];
+      
+      if (!dataset) return;
+      
+      currentDataset = dataset;
+      console.log('🔄 Loading:', dataset.name);
+      
+      // Remove existing layer
+      if (rasterLayer) {
+        map.removeLayer(rasterLayer);
+      }
+      
+      // Build GCS URL and encode for TiTiler
+      var gcsUrl = getGcsUrl(dataset.filename);
+      var encodedUrl = encodeURIComponent(gcsUrl);
+      var tileUrl = CONFIG.tileServerUrl + '/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=' + encodedUrl;
+      
+      // Apply colormap for grayscale/DEM layers
+      if (dataset.type === 'dem' || dataset.type === 'grayscale') {
+        var colormap = document.getElementById('colormapSelect').value;
+        tileUrl += '&colormap_name=' + colormap;
+      }
+      
+      // Add raster layer
+      rasterLayer = L.tileLayer(tileUrl, {
+        opacity: parseFloat(document.getElementById('opacitySlider').value),
+        maxZoom: CONFIG.maxZoom,
+        attribution: 'SeaVision Analytics | NOAA PIFSC'
+      }).addTo(map);
+      
+      // Set bounds
+      rasterBounds = L.latLngBounds(
+        [dataset.bounds[1], dataset.bounds[0]], // southwest
+        [dataset.bounds[3], dataset.bounds[2]]  // northeast
+      );
+      
+      // Handle layer events
+      rasterLayer.on('load', function() {
+        console.log('✅ Loaded:', dataset.name);
+      });
+      
+      rasterLayer.on('tileerror', function() {
+        console.error('❌ Error loading tiles. Check tile server URL and COG availability.');
+      });
+      
+      // Show/hide colormap controls based on type
+      if (dataset.type === 'dem' || dataset.type === 'grayscale') {
+        document.getElementById('colormapGroup').style.display = 'block';
+      } else {
+        document.getElementById('colormapGroup').style.display = 'none';
+      }
+      
+      // Update info
+      updateRasterInfo(dataset);
+    }
+    
+    // Zoom to raster bounds
+    function zoomToRaster() {
+      if (rasterBounds) {
+        map.fitBounds(rasterBounds, {padding: [20, 20]});
+      }
+    }
+    
+    // Update opacity
+    function updateOpacity(value) {
+      document.getElementById('opacityValue').textContent = parseFloat(value).toFixed(2);
+      if (rasterLayer) {
+        rasterLayer.setOpacity(parseFloat(value));
+      }
+    }
+    
+    // Change basemap
+    function changeBasemap() {
+      var select = document.getElementById('basemapSelect');
+      var selectedBasemap = select.value;
+      
+      // Remove current basemap
+      if (currentBasemap) {
+        map.removeLayer(currentBasemap);
+      }
+      
+      // Add new basemap
+      currentBasemap = basemapLayers[selectedBasemap];
+      if (currentBasemap) {
+        currentBasemap.addTo(map);
+        
+        // Ensure raster layer stays on top
+        if (rasterLayer) {
+          rasterLayer.bringToFront();
+        }
+      }
+    }
+    
+    // Update colormap (for DEM/grayscale layers)
+    function updateColormap() {
+      if (!currentDataset) return;
+      
+      var colormap = document.getElementById('colormapSelect').value;
+      var gcsUrl = getGcsUrl(currentDataset.filename);
+      var encodedUrl = encodeURIComponent(gcsUrl);
+      var tileUrl = CONFIG.tileServerUrl + '/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=' + encodedUrl + 
+                    '&colormap_name=' + colormap;
+      
+      if (rasterLayer) {
+        map.removeLayer(rasterLayer);
+      }
+      
+      rasterLayer = L.tileLayer(tileUrl, {
+        opacity: parseFloat(document.getElementById('opacitySlider').value),
+        maxZoom: CONFIG.maxZoom,
+        attribution: 'SeaVision Analytics | NOAA PIFSC'
+      }).addTo(map);
+      
+      console.log('✅ Applied', colormap, 'colormap');
+    }
+    
+    // Toggle control panel
+    function togglePanel() {
+      var panel = document.getElementById('controlPanel');
+      var toggleBtn = document.querySelector('.toggle-panel');
+      
+      if (panel.classList.contains('hidden') || panel.style.display === 'none') {
+        panel.classList.remove('hidden');
+        panel.style.display = 'block';
+        toggleBtn.innerHTML = '✕ Close';
+      } else {
+        panel.classList.add('hidden');
+        panel.style.display = 'none';
+        toggleBtn.innerHTML = '☰ Controls';
+      }
+    }
+    
+    // Update raster info
+    function updateRasterInfo(dataset) {
+      var infoDiv = document.getElementById('rasterInfo');
+      var infoContent = document.getElementById('infoContent');
+      
+      var bounds = dataset.bounds;
+      var width = ((bounds[2] - bounds[0]) * 111).toFixed(2);  // Approximate km
+      var height = ((bounds[3] - bounds[1]) * 111).toFixed(2);
+      
+      infoContent.innerHTML = 
+        '<strong>Type:</strong> ' + dataset.type + '<br>' +
+        '<strong>Extent:</strong> ~' + width + ' × ' + height + ' km<br>' +
+        '<strong>Bounds:</strong> ' + bounds.join(', ');
+      
+      infoDiv.style.display = 'block';
+    }
+    
+    // Initialize on page load
+    window.onload = function() {
+      populateDatasetSelector();
+      loadSelectedRaster();
+    };
+  </script>
+</body>
+</html>
